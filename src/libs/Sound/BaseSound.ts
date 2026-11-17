@@ -1,4 +1,6 @@
+import {getErrorMessage} from '@libs/ErrorUtils';
 import getPlatform from '@libs/getPlatform';
+import Log from '@libs/Log';
 
 import ONYXKEYS from '@src/ONYXKEYS';
 
@@ -45,7 +47,21 @@ function withMinimalExecutionTime<F extends (...args: Parameters<F>) => ReturnTy
             }
 
             const [nextFunc, resolve] = next;
-            nextFunc();
+            // The same failure is logged whether the queued function throws
+            // synchronously or rejects, so both paths share one log call.
+            const logQueueFailure = (error: unknown) => Log.hmmm('[sound] Queued sound failed', {message: getErrorMessage(error)});
+            try {
+                const result: unknown = nextFunc();
+                if (result instanceof Promise) {
+                    // A queued function that rejects must never surface as an
+                    // unhandled rejection. resolve() still runs immediately,
+                    // exactly as today, and the 300ms spacing is unchanged:
+                    // this only attaches a log handler to the dropped promise.
+                    result.catch(logQueueFailure);
+                }
+            } catch (error) {
+                logQueueFailure(error);
+            }
             resolve();
             timerId = setTimeout(processQueue, minExecutionTime);
         } else {
