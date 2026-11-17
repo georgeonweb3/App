@@ -63,8 +63,15 @@ function copySelectionToClipboard(event: ClipboardEvent) {
     }
 
     const clipboardText = getClipboardText(selection);
+
+    // The scrape can return nothing useful for a selection it cannot serialise. Clearing the
+    // clipboard before knowing there is a replacement would destroy the user's copy, so leave
+    // the browser's own copy untouched when there is nothing better to write.
+    if (!clipboardText || clipboardText.trim().length === 0) {
+        return;
+    }
+
     event.preventDefault();
-    event.clipboardData.clearData();
     event.clipboardData.setData('text/html', selection);
     event.clipboardData.setData('text/plain', clipboardText);
 }

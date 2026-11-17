@@ -7,3 +7,9 @@
 - Upstream PR/issue: https://github.com/Expensify/react-native-live-markdown/pull/776 (on hold until the library can rely on React Native 0.88; drop this patch once the app upgrades to a release that contains it)
 - E/App issue: https://github.com/Expensify/App/issues/98254
 - PR introducing patch: https://github.com/Expensify/App/pull/102415
+
+### [@expensify+react-native-live-markdown+0.1.372+002+sync-selection-before-copy.patch](@expensify+react-native-live-markdown+0.1.372+002+sync-selection-before-copy.patch)
+
+- Reason: `handleCopy` in `MarkdownTextInput.web.tsx` cancels the native copy and writes `value.substring(start, end)` from a cached selection that is only refreshed by React's `onSelect`. React suppresses `onSelect` while it thinks a mouse button is down, and a drag released outside the React root (for example below the browser window) never clears that flag, so the cache can still hold the collapsed caret from before the drag and Command+C copies an empty string. The patch re-reads the live DOM selection with the file's own `getCurrentCursorPosition` and `updateSelection` inside `handleCopy` before the text is read, so the copy uses what is actually highlighted. A live read that cannot be mapped to the parsed tree returns -1 offsets, so it is only accepted when both offsets are valid and the cached selection is kept otherwise. `handleCut` calls `handleCopy` first, so cut is fixed by the same change.
+- Upstream issue: the same fix belongs upstream in `Expensify/react-native-live-markdown`; drop this patch once the app upgrades to a release that contains it.
+- E/App issue: https://github.com/Expensify/App/issues/107116
